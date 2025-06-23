@@ -128,40 +128,82 @@
 
 > "技术的终极目标不是创造复杂的工具，而是简化复杂的事物，让每个人都能参与创造。中文Python正是朝着这个方向迈出的一小步。"
 
-> "语言不应成为思想的牢笼，代码也不该被语法所束缚。让我们用母语书写代码，用创意定义未来。"
+> "语言不应成为思想的牢笼，代码也不该被语言所束缚。让我们用母语书写代码，用创意定义未来。"
 
 — ikdxhz
 
 ## 中文关键词对照表
 
-下面是部分中文关键词与Python对应关系：
+| 中文 | Python | 中文 | Python | 中文 | Python | 中文 | Python |
+|------|--------|------|--------|------|--------|------|--------|
+| 如果 | if | 否则如果 | elif | 否则 | else | 循环 | for |
+| 若 | if | 或者如果 | elif | 不然 | else | 遍历 | for |
+| 若是 | if | 不然如果 | elif | 要不然 | else | 迭代 | for |
+| 假如 | if | 要不然如果 | elif | 反之 | else | 对于 | for |
+| 倘若 | if | 当 | while | 跳过 | continue | 中断 | break |
+| 但凡 | if | 只要 | while | 继续 | continue | 终止 | break |
+| 苟若 | if | 周而复始 | while | 略过 | continue | 停止 | break |
+| 且 | and | 或 | or | 非 | not | 是 | is |
+| 并且 | and | 或者 | or | 不 | not | 为 | is |
+| 同时 | and | 亦或 | or | 不是 | not | 等于 | is |
+| 与 | and | 或是 | or | 取反 | not | 不等于 | is not |
+| 既 | and | 抑或 | or | 非也 | not | 不为 | is not |
+| 定义 | def | 类 | class | 返回 | return | 匿名函数 | lambda |
+| 函数 | def | 对象类 | class | 回传 | return | 匿名 | lambda |
+| 方法 | def | 模型 | class | 输出 | return | 短函数 | lambda |
+| 术 | def | 流派 | class | 回馈 | return | 内联函数 | lambda |
+| 法门 | def | 门派 | class | 奉上 | return | 简函数 | lambda |
+| 尝试 | try | 捕获 | except | 最后 | finally | 值错误 | ValueError |
+| 试着 | try | 异常 | except | 善后 | finally | 类型错误 | TypeError |
+| 测试 | try | 例外 | except | 无论如何 | finally | 索引错误 | IndexError |
+| 小心行事 | try | 错误 | except | 总是执行 | finally | 键错误 | KeyError |
+| 姑且一试 | try | 若有差池 | except | 清理 | finally | 零除错误 | ZeroDivisionError |
+| 全局 | global | 非局部 | nonlocal | 局部 | local | 通过 | pass |
+| 全局变量 | global | 外层变量 | nonlocal | 变量 | variable | 跳过语句 | pass |
+| 全局作用域 | global | 外部变量 | nonlocal | 常量 | constant | 空语句 | pass |
+| 打印 | print | 输入 | input | 范围 | range | 长度 | len |
+| 显示 | print | 读取 | input | 区间 | range | 计数 | len |
+| 写出 | print | 接收 | input | 序列 | range | 统计 | len |
+| 呈现 | print | 询问 | input | 数列 | range | 数量 | len |
+| 道出 | print | 请教 | input | 枚举 | enumerate | 遍历 | iter |
+| 列表 | list | 字典 | dict | 集合 | set | 元组 | tuple |
+| 表 | list | 表格 | dict | 无序集 | set | 固定组 | tuple |
+| 数组 | list | 映射 | dict | 唯一集 | set | 不变组 | tuple |
+| 清单 | list | 字典册 | dict | 添加 | append | 插入 | insert |
+| 簿册 | list | 对照表 | dict | 追加 | append | 弹出 | pop |
+| 名录 | list | 哈希表 | dict | 增加 | append | 删除 | remove |
+| 打开 | open | 读取 | read | 写入 | write | 关闭 | close |
+| 开卷 | open | 读一行 | readline | 写入行 | writelines | 合卷 | close |
+| 读模式 | r | 写模式 | w | 追加模式 | a | 二进制模式 | b |
+| 读写模式 | r+ | 与 | with | 作为 | as | 刷新 | flush |
+| 平方 | square | 平均值 | mean | 标准差 | std | 方差 | var |
+| 开方 | sqrt | 立方 | cube | 立方根 | cbrt | 绝对值 | abs |
+| 对数 | log | 以10为底对数 | log10 | 指数 | exp | 幂 | pow |
+| 正弦 | sin | 余弦 | cos | 正切 | tan | 反正弦 | arcsin |
+| 四舍五入 | round | 向上取整 | ceil | 向下取整 | floor | 阶乘 | factorial |
+| 模式 | pattern | 匹配 | match | 搜索 | search | 查找全部 | findall |
+| 替换 | sub | 分割 | split | 编译 | compile | 开头匹配 | ^ |
+| 结尾匹配 | $ | 任意字符 | . | 零次或多次 | * | 一次或多次 | + |
+| 零次或一次 | ? | 字符集 | [] | 排除集 | [^] | 组 | () |
+| 网络 | network | 套接字 | socket | 服务器 | server | 客户端 | client |
+| 主机 | host | 端口 | port | 地址 | address | IP地址 | ip_address |
+| 请求 | request | 响应 | response | GET请求 | get | POST请求 | post |
+| 头部 | headers | 内容类型 | content_type | 状态码 | status_code | 会话 | session |
+| 数据框 | DataFrame | 系列 | Series | 读取CSV | pd.read_csv | 读取Excel | pd.read_excel |
+| 分组 | groupby | 聚合 | aggregate | 透视表 | pivot_table | 合并 | merge |
+| 图像 | figure | 子图 | subplot | 绘图 | plot | 散点图 | scatter |
+| 条形图 | bar | 饼图 | pie | 直方图 | hist | 箱线图 | boxplot |
+| 窗口 | window | 按钮 | button | 标签 | label | 输入框 | entry |
+| 文本框 | text | 复选框 | checkbox | 单选按钮 | radiobutton | 下拉菜单 | combobox |
+| 菜单 | menu | 菜单栏 | menubar | 工具栏 | toolbar | 状态栏 | statusbar |
+| 画布 | canvas | 事件 | event | 绑定 | bind | 布局 | layout |
+| 苟若 | if | 不尔 | else | 术 | def | 门派 | class |
+| 诚如 | if | 否则然 | else | 法门 | def | 流派 | class |
+| 若然 | if | 点到为止 | break | 招式 | def | 派系 | class |
+| 且看下回 | continue | 开卷 | open | 誊抄 | write | 小生 | self |
+| 道出 | print | 求教 | input | 吾身 | self | 在下 | self |
 
-| 中文关键词 | Python关键词 |
-|------------|--------------|
-| 如果       | if           |
-| 否则如果   | elif         |
-| 否则       | else         |
-| 对于       | for          |
-| 在         | in           |
-| 当         | while        |
-| 定义       | def          |
-| 类         | class        |
-| 返回       | return       |
-| 打印       | print        |
-| 导入       | import       |
-| 从         | from         |
-| 尝试       | try          |
-| 捕获       | except       |
-| 最后       | finally      |
-| 真         | True         |
-| 假         | False        |
-| 空         | None         |
-| 跳过       | continue     |
-| 中断       | break        |
-| 并且       | and          |
-| 或者       | or           |
-| 不是       | not          |
-| 添加       | append       |
+请注意，上表仅展示了部分中文映射，完整映射请参考源代码中的mapping.py文件。您可以根据个人喜好和习惯选择合适的中文表达方式。
 
 ## 运行环境要求
 
@@ -254,4 +296,56 @@ A: 中文Python主要面向教育和学习场景，不建议在生产环境中�
 > Programming changes the world, mother tongue changes programming.
 
 ---
+
+## 最近更新
+
+### 2024年版本增加了大量新的中文映射关键词
+
+1. **异常处理相关**：
+   - 增加了各种常见异常类型的中文名称，如"值错误"→"ValueError"，"类型错误"→"TypeError"等
+   - 新增异常处理相关表达，如"总是执行"→"finally"，"清理"→"finally"等
+
+2. **数据结构方法**：
+   - 增加了列表、字典等数据结构的方法映射，如"插入"→"insert"，"弹出"→"pop"等
+   - 添加了各种数据操作方法，如"清空"→"clear"，"统计"→"count"等
+
+3. **文件操作**：
+   - 新增文件模式映射，如"读模式"→"r"，"写模式"→"w"等
+   - 添加了文件方法映射，如"读一行"→"readline"，"写入行"→"writelines"等
+
+4. **网络编程**：
+   - 增加了网络编程相关关键词，如"套接字"→"socket"，"监听"→"listen"等
+   - 添加了HTTP相关映射，如"请求"→"request"，"响应"→"response"等
+
+5. **数据科学与可视化**：
+   - 新增pandas和numpy相关映射，如"数据框"→"DataFrame"，"分组"→"groupby"等
+   - 添加了matplotlib可视化相关映射，如"散点图"→"scatter"，"条形图"→"bar"等
+
+6. **面向对象编程**：
+   - 增加了更多OOP概念映射，如"继承"→"inherit"，"多态"→"polymorphism"等
+   - 添加了类方法和特殊方法的中文映射
+
+7. **高级Python特性**：
+   - 添加了协程、异步等高级特性映射，如"异步"→"async"，"等待"→"await"等
+   - 增加了生成器、装饰器等映射
+
+8. **中国特色表达**：
+   - 增加了具有中国传统文化特色的关键词映射，如"术"→"def"，"门派"→"class"等
+   - 添加了古风表达方式，如"开卷"→"open"，"誊抄"→"write"等
+
+所有这些新增映射使得中文Python解释器更加丰富和实用，覆盖了从基础编程到高级应用的各个方面，让中文用户可以更自然地使用自己的语言进行编程。
+
+## 贡献
+
+欢迎贡献！您可以通过以下方式参与：
+
+- 添加更多中文关键词映射
+- 改进代码转换算法
+- 修复bug
+- 添加新功能
+- 改进文档
+
+## 许可证
+
+MIT
 
