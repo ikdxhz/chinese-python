@@ -1,6 +1,18 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+# 更新日志
+"""
+更新日志:
+2023-09-09: 初始版本发布
+2024-05-18: 
+- 修复正则表达式转义序列错误
+- 移除30秒执行时间限制
+- 增加实时输出功能
+- 增加停止执行功能
+- 改进UI交互体验
+"""
+
 import os
 import sys
 import tkinter as tk
@@ -201,6 +213,10 @@ class ChinesePythonGUI:
         # 当前打开的文件路径
         self.current_file = None
         
+        # 创建线程控制变量
+        self.stop_execution = threading.Event()
+        self.execution_thread = None
+        
         # 创建界面组件
         self.create_widgets()
         
@@ -272,6 +288,7 @@ class ChinesePythonGUI:
         # 运行菜单
         self.run_menu = tk.Menu(self.menu_bar, tearoff=0)
         self.run_menu.add_command(label="运行", command=self.run_code, accelerator="F5")
+        self.run_menu.add_command(label="停止", command=self.stop_code, accelerator="F12")
         self.run_menu.add_command(label="清空输出", command=self.clear_output, accelerator="F6")
         self.menu_bar.add_cascade(label="运行", menu=self.run_menu)
         
@@ -301,12 +318,13 @@ class ChinesePythonGUI:
         self.save_button = ttk.Button(self.toolbar, text="保存", command=self.save_file)
         self.save_button.pack(side=tk.LEFT, padx=2, pady=2)
         
-        # 分隔符
-        ttk.Separator(self.toolbar, orient=tk.VERTICAL).pack(side=tk.LEFT, padx=5, fill=tk.Y)
-        
         # 运行按钮
         self.run_button = ttk.Button(self.toolbar, text="运行", command=self.run_code)
         self.run_button.pack(side=tk.LEFT, padx=2, pady=2)
+        
+        # 停止按钮
+        self.stop_button = ttk.Button(self.toolbar, text="停止", command=self.stop_code, state="disabled")
+        self.stop_button.pack(side=tk.LEFT, padx=2, pady=2)
         
         # 清空输出按钮
         self.clear_button = ttk.Button(self.toolbar, text="清空输出", command=self.clear_output)
@@ -401,14 +419,18 @@ class ChinesePythonGUI:
     def bind_shortcuts(self):
         """绑定快捷键"""
         # 文件操作快捷键
-        self.root.bind("<Control-n>", lambda event: self.new_file())
-        self.root.bind("<Control-o>", lambda event: self.open_file())
-        self.root.bind("<Control-s>", lambda event: self.save_file())
-        self.root.bind("<Control-Shift-S>", lambda event: self.save_file_as())
+        self.root.bind("<Control-n>", lambda e: self.new_file())
+        self.root.bind("<Control-o>", lambda e: self.open_file())
+        self.root.bind("<Control-s>", lambda e: self.save_file())
+        self.root.bind("<Control-Shift-S>", lambda e: self.save_file_as())
         
         # 运行快捷键
-        self.root.bind("<F5>", lambda event: self.run_code())
-        self.root.bind("<F6>", lambda event: self.clear_output())
+        self.root.bind("<F5>", lambda e: self.run_code())
+        self.root.bind("<F6>", lambda e: self.clear_output())
+        self.root.bind("<F12>", lambda e: self.stop_code())
+        
+        # Tab键处理
+        self.editor.bind("<Tab>", self.handle_tab)
         
     def handle_tab(self, event):
         """处理Tab键，插入4个空格而不是制表符"""
@@ -555,6 +577,12 @@ class ChinesePythonGUI:
         # 更新状态栏
         self.update_status("正在执行...")
         
+        # 重置停止标志
+        self.stop_execution.clear()
+        
+        # 启用停止按钮
+        self.stop_button.config(state="normal")
+        
         try:
             # 如果有保存的文件，直接运行该文件
             if self.current_file:
@@ -568,6 +596,9 @@ class ChinesePythonGUI:
         except Exception as e:
             self.append_output(f"执行错误: {e}\n", "error")
             self.update_status("执行出错")
+        
+        # 执行完毕后禁用停止按钮
+        self.stop_button.config(state="disabled")
             
     def execute_code_directly(self, code):
         """直接执行中文Python代码"""
@@ -590,30 +621,55 @@ class ChinesePythonGUI:
         except Exception as e:
             self.append_output(f"执行错误: {e}\n", "error")
             
-    def run_with_timeout(self, python_code, timeout=30):
-        """使用线程和超时机制执行代码
+    def run_with_timeout(self, python_code, timeout=3600):
+        """使用线程执行代码
         
         参数:
             python_code: 要执行的Python代码
-            timeout: 超时时间（秒）, 默认30秒
+            timeout: 超时时间（秒）, 默认3600秒（1小时）
         """
+        # 创建自定义输出流，实现实时输出到GUI
+        class OutputRedirector:
+            def __init__(self, text_widget, tag="normal"):
+                self.text_widget = text_widget
+                self.tag = tag
+                self.buffer = ""
+                
+            def write(self, string):
+                self.buffer += string
+                if "\n" in self.buffer or len(self.buffer) > 80:  # 当有换行或缓冲区超过80字符时更新GUI
+                    self.text_widget.config(state="normal")
+                    self.text_widget.insert(tk.END, self.buffer, self.tag)
+                    self.text_widget.see(tk.END)
+                    self.text_widget.config(state="disabled")
+                    self.text_widget.update()  # 强制更新GUI
+                    self.buffer = ""
+                    
+            def flush(self):
+                if self.buffer:
+                    self.text_widget.config(state="normal")
+                    self.text_widget.insert(tk.END, self.buffer, self.tag)
+                    self.text_widget.see(tk.END)
+                    self.text_widget.config(state="disabled")
+                    self.text_widget.update()
+                    self.buffer = ""
+        
         # 重定向标准输出和标准错误
         original_stdout = sys.stdout
         original_stderr = sys.stderr
         
-        # 创建字符串IO对象捕获输出
-        from io import StringIO
-        captured_output = StringIO()
-        captured_error = StringIO()
+        # 创建自定义输出重定向器
+        stdout_redirector = OutputRedirector(self.output, "normal")
+        stderr_redirector = OutputRedirector(self.output, "error")
         
         # 创建事件用于通知执行完成
         execution_done = threading.Event()
-        execution_result = {"output": "", "error": "", "success": False}
+        execution_result = {"success": False}
         
         # 定义执行线程
         def execution_thread():
-            sys.stdout = captured_output
-            sys.stderr = captured_error
+            sys.stdout = stdout_redirector
+            sys.stderr = stderr_redirector
             
             try:
                 # 创建命名空间
@@ -629,11 +685,11 @@ class ChinesePythonGUI:
                 execution_result["success"] = True
                 
             except Exception as e:
-                captured_error.write(str(e))
+                stderr_redirector.write(str(e))
             finally:
-                # 获取捕获的输出
-                execution_result["output"] = captured_output.getvalue()
-                execution_result["error"] = captured_error.getvalue()
+                # 确保缓冲区内容被刷新
+                stdout_redirector.flush()
+                stderr_redirector.flush()
                 
                 # 恢复标准输出和标准错误
                 sys.stdout = original_stdout
@@ -643,9 +699,9 @@ class ChinesePythonGUI:
                 execution_done.set()
         
         # 创建并启动执行线程
-        thread = threading.Thread(target=execution_thread)
-        thread.daemon = True  # 设置为守护线程，这样主程序退出时线程也会退出
-        thread.start()
+        self.execution_thread = threading.Thread(target=execution_thread)
+        self.execution_thread.daemon = True  # 设置为守护线程，这样主程序退出时线程也会退出
+        self.execution_thread.start()
         
         # 在UI上显示执行中的提示
         self.update_status("正在执行代码...")
@@ -663,21 +719,19 @@ class ChinesePythonGUI:
         progress_line = self.output.index("end-1c linestart")
         
         while not execution_done.is_set() and (time.time() - start_time) < timeout:
+            # 检查是否要求停止
+            if self.stop_execution.is_set():
+                self.append_output("\n执行已被用户停止！\n", "warning")
+                self.update_status("执行已停止")
+                return
+                
             # 更新进度动画
             elapsed = time.time() - start_time
             if elapsed % 0.2 < 0.1:  # 每0.2秒更新一次动画
                 char_index = (char_index + 1) % len(progress_chars)
-                remaining = int(timeout - elapsed)
                 
                 # 更新状态栏
-                self.update_status(f"正在执行代码... {progress_chars[char_index]} (剩余 {remaining} 秒)")
-                
-                # 更新输出区进度信息
-                self.output.config(state="normal")
-                self.output.delete(progress_line, "end-1c")
-                elapsed_str = f"{elapsed:.1f}"
-                self.output.insert("end-1c", f"{progress_chars[char_index]} 执行中... 已用时 {elapsed_str} 秒 (最多运行 {timeout} 秒)", "info")
-                self.output.config(state="disabled")
+                self.update_status(f"正在执行代码... {progress_chars[char_index]} (已用时 {elapsed:.1f} 秒)")
                 
                 # 更新UI
                 self.root.update()
@@ -694,10 +748,6 @@ class ChinesePythonGUI:
             self.append_output("1. 代码中存在无限循环\n", "warning")
             self.append_output("2. 计算量过大，需要更长时间\n", "warning")
             self.append_output("3. 存在等待用户输入的代码\n", "warning")
-            self.append_output("\n建议：\n", "info")
-            self.append_output("• 检查循环条件是否正确\n", "info")
-            self.append_output("• 减少计算量或优化算法\n", "info")
-            self.append_output("• 避免在此环境中使用input()函数\n", "info")
             
             self.update_status("代码执行超时")
             return
@@ -705,17 +755,9 @@ class ChinesePythonGUI:
         # 显示执行结果
         if execution_result["success"]:
             self.update_status("代码执行完成")
-            if execution_result["output"]:
-                self.append_output(execution_result["output"], "normal")
-                
-            if execution_result["output"]:
-                self.append_output("\n代码执行成功！\n", "success")
-        
-        # 显示错误
-        if execution_result["error"]:
+            self.append_output("\n代码执行成功！\n", "success")
+        else:
             self.update_status("代码执行出错")
-            self.append_output("错误:\n", "error")
-            self.append_output(f"{execution_result['error']}", "error")
             
     def run_file(self, file_path):
         """运行指定的文件"""
@@ -743,30 +785,55 @@ class ChinesePythonGUI:
             self.append_output(f"运行文件时出错: {e}\n", "error")
             self.update_status("运行文件出错")
             
-    def run_file_with_timeout(self, file_path, timeout=30):
-        """使用线程和超时机制执行文件
+    def run_file_with_timeout(self, file_path, timeout=3600):
+        """使用线程执行文件
         
         参数:
             file_path: 要执行的文件路径
-            timeout: 超时时间（秒）, 默认30秒
+            timeout: 超时时间（秒）, 默认3600秒（1小时）
         """
+        # 创建自定义输出流，实现实时输出到GUI
+        class OutputRedirector:
+            def __init__(self, text_widget, tag="normal"):
+                self.text_widget = text_widget
+                self.tag = tag
+                self.buffer = ""
+                
+            def write(self, string):
+                self.buffer += string
+                if "\n" in self.buffer or len(self.buffer) > 80:  # 当有换行或缓冲区超过80字符时更新GUI
+                    self.text_widget.config(state="normal")
+                    self.text_widget.insert(tk.END, self.buffer, self.tag)
+                    self.text_widget.see(tk.END)
+                    self.text_widget.config(state="disabled")
+                    self.text_widget.update()  # 强制更新GUI
+                    self.buffer = ""
+                    
+            def flush(self):
+                if self.buffer:
+                    self.text_widget.config(state="normal")
+                    self.text_widget.insert(tk.END, self.buffer, self.tag)
+                    self.text_widget.see(tk.END)
+                    self.text_widget.config(state="disabled")
+                    self.text_widget.update()
+                    self.buffer = ""
+        
         # 重定向标准输出和标准错误
         original_stdout = sys.stdout
         original_stderr = sys.stderr
         
-        # 创建字符串IO对象捕获输出
-        from io import StringIO
-        captured_output = StringIO()
-        captured_error = StringIO()
+        # 创建自定义输出重定向器
+        stdout_redirector = OutputRedirector(self.output, "normal")
+        stderr_redirector = OutputRedirector(self.output, "error")
         
         # 创建事件用于通知执行完成
         execution_done = threading.Event()
-        execution_result = {"output": "", "error": "", "success": False}
+        execution_result = {"success": False}
         
         # 定义执行线程
         def execution_thread():
-            sys.stdout = captured_output
-            sys.stderr = captured_error
+            sys.stdout = stdout_redirector
+            sys.stderr = stderr_redirector
             
             try:
                 # 直接调用chinese_python模块的函数运行文件
@@ -774,11 +841,11 @@ class ChinesePythonGUI:
                 execution_result["success"] = True
                 
             except Exception as e:
-                captured_error.write(str(e))
+                stderr_redirector.write(str(e))
             finally:
-                # 获取捕获的输出
-                execution_result["output"] = captured_output.getvalue()
-                execution_result["error"] = captured_error.getvalue()
+                # 确保缓冲区内容被刷新
+                stdout_redirector.flush()
+                stderr_redirector.flush()
                 
                 # 恢复标准输出和标准错误
                 sys.stdout = original_stdout
@@ -786,14 +853,14 @@ class ChinesePythonGUI:
                 
                 # 通知执行完成
                 execution_done.set()
-        
+                
         # 创建并启动执行线程
-        thread = threading.Thread(target=execution_thread)
-        thread.daemon = True  # 设置为守护线程，这样主程序退出时线程也会退出
-        thread.start()
+        self.execution_thread = threading.Thread(target=execution_thread)
+        self.execution_thread.daemon = True  # 设置为守护线程，这样主程序退出时线程也会退出
+        self.execution_thread.start()
         
         # 在UI上显示执行中的提示
-        self.update_status(f"正在执行文件: {os.path.basename(file_path)}...")
+        self.update_status("正在执行文件...")
         self.root.update()
         
         # 等待执行完成或超时
@@ -804,46 +871,39 @@ class ChinesePythonGUI:
         char_index = 0
         
         # 实时显示进度
-        file_name = os.path.basename(file_path)
-        self.append_output(f"正在执行文件: {file_name}...\n", "info")
+        self.append_output(f"正在执行文件: {os.path.basename(file_path)}...\n", "info")
         progress_line = self.output.index("end-1c linestart")
         
         while not execution_done.is_set() and (time.time() - start_time) < timeout:
+            # 检查是否要求停止
+            if self.stop_execution.is_set():
+                self.append_output("\n执行已被用户停止！\n", "warning")
+                self.update_status("执行已停止")
+                return
+                
             # 更新进度动画
             elapsed = time.time() - start_time
             if elapsed % 0.2 < 0.1:  # 每0.2秒更新一次动画
                 char_index = (char_index + 1) % len(progress_chars)
-                remaining = int(timeout - elapsed)
                 
                 # 更新状态栏
-                self.update_status(f"正在执行文件 {file_name}... {progress_chars[char_index]} (剩余 {remaining} 秒)")
-                
-                # 更新输出区进度信息
-                self.output.config(state="normal")
-                self.output.delete(progress_line, "end-1c")
-                elapsed_str = f"{elapsed:.1f}"
-                self.output.insert("end-1c", f"{progress_chars[char_index]} 执行中... 已用时 {elapsed_str} 秒 (最多运行 {timeout} 秒)", "info")
-                self.output.config(state="disabled")
+                self.update_status(f"正在执行文件... {progress_chars[char_index]} (已用时 {elapsed:.1f} 秒)")
                 
                 # 更新UI
                 self.root.update()
             time.sleep(0.05)
-        
+            
         # 检查是否超时
         if not execution_done.is_set():
             self.output.config(state="normal")
             self.output.delete(progress_line, "end-1c")
             self.output.config(state="disabled")
             
-            self.append_output(f"\n⚠️ 文件 {os.path.basename(file_path)} 执行超时！", "warning")
+            self.append_output("\n⚠️ 文件执行超时！", "warning")
             self.append_output("\n可能原因：\n", "warning")
             self.append_output("1. 代码中存在无限循环\n", "warning")
             self.append_output("2. 计算量过大，需要更长时间\n", "warning")
             self.append_output("3. 存在等待用户输入的代码\n", "warning")
-            self.append_output("\n建议：\n", "info")
-            self.append_output("• 检查循环条件是否正确\n", "info")
-            self.append_output("• 减少计算量或优化算法\n", "info")
-            self.append_output("• 避免在此环境中使用input()函数\n", "info")
             
             self.update_status("文件执行超时")
             return
@@ -851,17 +911,9 @@ class ChinesePythonGUI:
         # 显示执行结果
         if execution_result["success"]:
             self.update_status("文件执行完成")
-            if execution_result["output"]:
-                self.append_output(execution_result["output"], "normal")
-                
-            if execution_result["output"]:
-                self.append_output("\n文件执行成功！\n", "success")
-        
-        # 显示错误
-        if execution_result["error"]:
+            self.append_output("\n文件执行成功！\n", "success")
+        else:
             self.update_status("文件执行出错")
-            self.append_output("错误:\n", "error")
-            self.append_output(f"{execution_result['error']}", "error")
             
     def clear_output(self):
         """清空输出区域"""
@@ -982,12 +1034,22 @@ class ChinesePythonGUI:
             
     def show_about(self):
         """显示关于对话框"""
-        messagebox.showinfo(
-            "关于中文Python编辑器",
-            "中文Python编辑器 v1.0\n\n"
-            "这是一个用于编写和执行中文Python代码的简单编辑器。\n\n"
-            "作者: ikdxhz"
-        )
+        about_text = """中文Python编辑器 v1.1
+
+这是一个用于编写和执行中文Python代码的简单编辑器。
+
+更新日志:
+2023-09-09: 初始版本发布
+2024-05-18: 
+- 修复正则表达式转义序列错误
+- 移除30秒执行时间限制
+- 增加实时输出功能
+- 增加停止执行功能
+- 改进UI交互体验
+
+作者: ikdxhz
+"""
+        messagebox.showinfo("关于中文Python编辑器", about_text)
         
     def show_help(self):
         """显示帮助对话框"""
@@ -1025,6 +1087,17 @@ class ChinesePythonGUI:
        打印(i)
         """
         messagebox.showinfo("帮助", help_text)
+
+    def stop_code(self):
+        """停止当前正在执行的代码"""
+        if self.execution_thread and self.execution_thread.is_alive():
+            # 设置停止标志
+            self.stop_execution.set()
+            self.update_status("正在停止执行...")
+            self.append_output("\n正在停止执行...\n", "warning")
+            
+            # 禁用停止按钮，防止重复点击
+            self.stop_button.config(state="disabled")
 
 
 def main():

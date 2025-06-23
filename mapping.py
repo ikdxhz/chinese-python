@@ -971,34 +971,18 @@ PY_MAPPING = {
     "四舍五入": "round",
     "取整数部分": "trunc",
 
-    # 正则表达式
-    "模式": "pattern",
-    "匹配": "match",
-    "搜索": "search",
-    "查找全部": "findall",
-    "替换": "sub",
-    "分割": "split",
-    "编译": "compile",
-    "开头匹配": "^",
-    "结尾匹配": "$",
-    "任意字符": ".",
-    "零次或多次": "*",
-    "一次或多次": "+",
-    "零次或一次": "?",
-    "或者": "|",
-    "字符集": "[]",
-    "排除集": "[^]",
-    "组": "()",
-    "重复次数": "{}",
-    "贪婪匹配": "*?",
-    "非贪婪匹配": "+?",
-    "单词边界": "\\b",
-    "数字": "\\d",
-    "非数字": "\\D",
-    "空白符": "\\s",
-    "非空白符": "\\S",
-    "单词字符": "\\w",
-    "非单词字符": "\\W",
+    # 数据分析
+    "数据分析": "data_analysis",
+    "数据处理": "data_processing",
+    "数据清洗": "data_cleaning",
+    "数据可视化": "data_visualization",
+    "数据提取": "data_extraction",
+    "数据转换": "data_transformation",
+    "数据筛选": "data_filtering",
+    "数据聚合": "data_aggregation",
+    "数据分组": "data_grouping",
+    "数据归一化": "data_normalization",
+    "数据标准化": "data_standardization",
 
     # JSON操作
     "解析JSON": "json.loads",
@@ -1114,6 +1098,9 @@ PY_MAPPING = {
     "字体": "font",
     "样式": "style",
     "主题": "theme",
+    "分集合": "splitset",
+    "过滤集合": "filterset",
+    "映射集合": "mapset",
 }
 
 # 反向映射（用于错误输出转换）
@@ -1165,7 +1152,7 @@ def translate_to_python(chinese_code):
     placeholders = {}
     
     # 提取三引号字符串
-    triple_quote_pattern = r'(""".*?"""|\'\'\'.*?\'\'\')'
+    triple_quote_pattern = r'(""".*?"""|\'{3}.*?\'{3})'
     triple_quotes = re.findall(triple_quote_pattern, chinese_code, re.DOTALL)
     for i, quote in enumerate(triple_quotes):
         placeholder = f"__TRIPLE_QUOTE_{i}__"
@@ -1337,7 +1324,7 @@ def translate_from_python(python_code):
     placeholders = {}
     
     # 提取三引号字符串
-    triple_quote_pattern = r'(""".*?"""|\'\'\'.*?\'\'\')'
+    triple_quote_pattern = r'(""".*?"""|\'{3}.*?\'{3})'
     triple_quotes = re.findall(triple_quote_pattern, python_code, re.DOTALL)
     for i, quote in enumerate(triple_quotes):
         placeholder = f"__TRIPLE_QUOTE_{i}__"
