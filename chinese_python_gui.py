@@ -1038,15 +1038,6 @@ class ChinesePythonGUI:
 
 这是一个用于编写和执行中文Python代码的简单编辑器。
 
-更新日志:
-2023-09-09: 初始版本发布
-2024-05-18: 
-- 修复正则表达式转义序列错误
-- 移除30秒执行时间限制
-- 增加实时输出功能
-- 增加停止执行功能
-- 改进UI交互体验
-
 作者: ikdxhz
 """
         messagebox.showinfo("关于中文Python编辑器", about_text)

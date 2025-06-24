@@ -1,0 +1,919 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>中文Python在线编辑器</title>
+    <meta name="author" content="ikdxhz">
+    <meta name="description" content="中文Python在线编辑器 - 用中文编写Python代码，让编程不再因为语言不通而被放弃">
+    <meta name="keywords" content="中文Python,在线编辑器,Python教育,编程学习,母语编程">
+    <link rel="canonical" href="https://github.com/ikdxhz/chinese-python">
+    <!-- Open Graph / 社交媒体元数据 -->
+    <meta property="og:title" content="中文Python在线编辑器">
+    <meta property="og:description" content="用中文编写Python代码，让编程学习更简单">
+    <meta property="og:url" content="https://github.com/ikdxhz/chinese-python">
+    <meta property="og:type" content="website">
+    <!-- CodeMirror库 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.3/codemirror.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.3/theme/monokai.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.3/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.3/mode/python/python.min.js"></script>
+    <!-- Pyodide 库，用于在浏览器中运行Python -->
+    <script src="https://cdn.jsdelivr.net/pyodide/v0.23.4/full/pyodide.js"></script>
+    
+    <!-- 结构化数据用于搜索引擎优化 -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      "name": "中文Python在线编辑器",
+      "description": "用中文编写Python代码，让编程不再因为语言不通而被放弃",
+      "applicationCategory": "DeveloperApplication",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "CNY"
+      },
+      "operatingSystem": "Web Browser",
+      "author": {
+        "@type": "Person",
+        "name": "ikdxhz",
+        "url": "https://github.com/ikdxhz"
+      },
+      "codeRepository": "https://github.com/ikdxhz/chinese-python",
+      "license": "https://opensource.org/licenses/MIT",
+      "programmingLanguage": "Python"
+    }
+    </script>
+    <style>
+        body {
+            font-family: "Microsoft YaHei", Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            background-color: #f5f5f5;
+            font-size: 16px;
+        }
+        .container {
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+            padding: 10px;
+            width: 100%;
+            max-width: 1200px;
+            margin: 0 auto;
+            background-color: white;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            box-sizing: border-box;
+            height: calc(100vh - 20px); /* 减去padding */
+            overflow: hidden; /* 防止滚动 */
+        }
+        .header {
+            background-color: #f0f0f0;
+            padding: 10px;
+            border-bottom: 1px solid #ccc;
+        }
+        .header h1 {
+            margin: 0;
+            padding: 0;
+            font-size: 1.5rem;
+            color: #333;
+            text-align: center;
+        }
+        .toolbar {
+            margin-top: 10px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+        }
+        .btn {
+            padding: 10px 15px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: background-color 0.3s;
+            min-width: 80px;
+            text-align: center;
+        }
+        .btn:hover {
+            background-color: #45a049;
+        }
+        .btn-secondary {
+            background-color: #f1f1f1;
+            color: #333;
+            border: 1px solid #ccc;
+        }
+        .btn-secondary:hover {
+            background-color: #e1e1e1;
+        }
+        .btn-run {
+            background-color: #2196F3;
+        }
+        .btn-run:hover {
+            background-color: #0b7dda;
+        }
+        .editor-container {
+            display: flex;
+            flex: 1;
+            margin-top: 10px;
+            gap: 10px;
+            min-height: 0; /* 重要：允许容器收缩 */
+        }
+        .code-area {
+            flex: 1;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            min-height: 0; /* 允许收缩 */
+        }
+        .code-header {
+            background-color: #f5f5f5;
+            padding: 10px;
+            border-bottom: 1px solid #ccc;
+            font-weight: bold;
+            font-size: 1rem;
+            text-align: center;
+        }
+        .code-editor {
+            flex: 1;
+            overflow: auto; /* 添加滚动条 */
+            min-height: 200px;
+        }
+        .output-container {
+            display: flex;
+            flex-direction: column;
+            margin-top: 10px;
+            gap: 10px;
+            flex: 1;
+            min-height: 0; /* 允许收缩 */
+            max-height: 40%;
+        }
+        .converted-code, .execution-output {
+            flex: 1;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            min-height: 150px;
+        }
+        .output-header {
+            background-color: #f5f5f5;
+            padding: 10px;
+            border-bottom: 1px solid #ccc;
+            font-weight: bold;
+            font-size: 1rem;
+            text-align: center;
+        }
+        .output-content {
+            flex: 1;
+            overflow: auto;
+            padding: 10px;
+            font-family: Consolas, monospace;
+            font-size: 0.95rem;
+            background-color: #f8f8f8;
+            white-space: pre-wrap;
+            min-height: 100px;
+        }
+        .status-bar {
+            background-color: #f0f0f0;
+            padding: 10px;
+            border-top: 1px solid #ccc;
+            font-size: 0.9rem;
+            color: #555;
+            text-align: center;
+        }
+        
+        .footer-info {
+            margin-top: 10px;
+            font-size: 0.85rem;
+            color: #666;
+        }
+        
+        .footer-info a {
+            color: #2196F3;
+            text-decoration: none;
+        }
+        
+        .footer-info a:hover {
+            text-decoration: underline;
+        }
+        
+        .footer-info {
+            margin-top: 10px;
+            font-size: 0.85rem;
+            color: #666;
+        }
+        
+        .footer-info a {
+            color: #2196F3;
+            text-decoration: none;
+        }
+        
+        .footer-info a:hover {
+            text-decoration: underline;
+        }
+        /* CodeMirror定制样式 */
+        .CodeMirror {
+            height: 100%;
+            font-family: Consolas, monospace;
+            font-size: 1rem;
+            overflow: auto !important; /* 强制显示滚动条 */
+        }
+        .CodeMirror-scroll {
+            min-height: 300px; /* 确保有足够的滚动空间 */
+        }
+        .error {
+            color: #ff0000;
+            font-weight: bold;
+            margin-top: 5px;
+            padding: 5px;
+            background-color: #fff0f0;
+            border-left: 3px solid #ff0000;
+        }
+        .warning {
+            color: #ff8c00;
+            font-weight: bold;
+            margin-top: 5px;
+            padding: 5px;
+            background-color: #fff8f0;
+            border-left: 3px solid #ff8c00;
+        }
+        .info {
+            color: #0000ff;
+            margin-top: 5px;
+            padding: 5px;
+            background-color: #f0f0ff;
+            border-left: 3px solid #0000ff;
+        }
+        
+        /* 加载指示器样式 */
+        .loading {
+            display: inline-block;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* 响应式设计 */
+        @media (min-width: 768px) {
+            .output-container {
+                flex-direction: row;
+                max-height: 40%;
+            }
+            .header h1 {
+                font-size: 1.8rem;
+            }
+            .btn {
+                min-width: 100px;
+            }
+        }
+        
+        /* 移动设备适配 */
+        @media (max-width: 767px) {
+            body {
+                font-size: 14px;
+            }
+            .container {
+                padding: 5px;
+            }
+            .toolbar {
+                justify-content: space-between;
+            }
+            .btn {
+                padding: 8px 12px;
+                font-size: 0.9rem;
+                flex: 1;
+                max-width: calc(50% - 10px);
+            }
+            /* 移除固定高度设置 */
+            .code-editor {
+                min-height: 180px;
+            }
+            .output-content {
+                min-height: 120px;
+            }
+            .CodeMirror {
+                font-size: 0.9rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>中文Python在线编辑器</h1>
+            <div class="toolbar">
+                <button id="new-btn" class="btn btn-secondary">新建</button>
+                <button id="clear-btn" class="btn btn-secondary">清空</button>
+                <button id="run-btn" class="btn btn-run">运行 (F5)</button>
+                <button id="stop-btn" class="btn btn-secondary" disabled>停止</button>
+                <button id="help-btn" class="btn btn-secondary">帮助</button>
+            </div>
+        </div>
+        <div class="editor-container">
+            <div class="code-area">
+                <div class="code-header">中文Python代码</div>
+                <div id="code-editor" class="code-editor"></div>
+            </div>
+        </div>
+        <div class="output-container">
+            <div class="converted-code">
+                <div class="output-header">转换后的Python代码</div>
+                <div id="converted-code" class="output-content"></div>
+            </div>
+            <div class="execution-output">
+                <div class="output-header">执行结果</div>
+                <div id="execution-output" class="output-content"></div>
+            </div>
+        </div>
+        <div class="status-bar">
+            <span id="status">就绪</span>
+            <div class="footer-info">
+                <p>作者: <a href="https://github.com/ikdxhz" target="_blank" rel="noopener">ikdxhz</a> | 
+                项目地址: <a href="https://github.com/ikdxhz/chinese-python" target="_blank" rel="noopener">chinese-python</a></p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 中文Python关键词映射
+        const PY_MAPPING = {
+            // 控制流
+            "如果": "if",
+            "若": "if",
+            "若是": "if",
+            "假如": "if",
+            "倘若": "if",
+            "但凡": "if",
+            
+            // elif 系列
+            "否则如果": "elif",
+            "或者如果": "elif",
+            "不然如果": "elif",
+            "要不然如果": "elif",
+            
+            // else 系列
+            "否则": "else",
+            "不然": "else",
+            "要不然": "else",
+            "反之": "else",
+            
+            // for 系列
+            "对于": "for",
+            "遍历": "for",
+            "循环": "for",
+            "迭代": "for",
+            
+            // in 系列
+            "在": "in",
+            "属于": "in",
+            "存在于": "in",
+            
+            // while 系列
+            "当": "while",
+            "只要": "while",
+            "周而复始": "while",
+            
+            // continue, break 系列
+            "跳过": "continue",
+            "继续": "continue",
+            "略过": "continue",
+            
+            "中断": "break",
+            "跳出": "break",
+            "终止": "break",
+            "停止": "break",
+            
+            // return 系列
+            "返回": "return",
+            "回传": "return",
+            "输出": "return",
+            
+            // lambda 系列
+            "匿名函数": "lambda",
+            "匿名": "lambda",
+            "短函数": "lambda",
+            
+            // 异常处理
+            "尝试": "try",
+            "试着": "try",
+            "测试": "try",
+            
+            "捕获": "except",
+            "异常": "except",
+            "例外": "except",
+            "错误": "except",
+            
+            "最后": "finally",
+            "善后": "finally",
+            "无论如何": "finally",
+            
+            // 常见异常类型
+            "值错误": "ValueError",
+            "类型错误": "TypeError",
+            "索引错误": "IndexError",
+            "键错误": "KeyError",
+            "零除错误": "ZeroDivisionError",
+            
+            // 函数与类
+            "定义": "def",
+            "函数": "def",
+            "方法": "def",
+            
+            "类": "class",
+            "对象类": "class",
+            "模型": "class",
+            
+            // 面向对象编程
+            "继承": "inherit",
+            "超类": "super",
+            "父类": "super",
+            "初始化": "__init__",
+            "构造": "__init__",
+            "实例": "instance",
+            "属性": "property",
+            "私有": "private",
+            "公开": "public",
+            "静态方法": "@staticmethod",
+            "类方法": "@classmethod",
+            "抽象类": "ABC",
+            
+            // 逻辑运算符
+            "且": "and",
+            "并且": "and",
+            "同时": "and",
+            "与": "and",
+            
+            "或": "or",
+            "或者": "or",
+            "亦或": "or",
+            
+            "非": "not",
+            "不": "not",
+            "不是": "not",
+            
+            // is 系列
+            "是": "is",
+            "为": "is",
+            "等于": "is",
+            
+            // 比较运算符
+            "大于": ">",
+            "小于": "<",
+            "大于等于": ">=",
+            "小于等于": "<=",
+            "不等于": "!=",
+            "等于等于": "==",
+            
+            // 基本函数和操作
+            "打印": "print",
+            "显示": "print",
+            "输出": "print",
+            "写出": "print",
+            
+            "输入": "input",
+            "读取": "input",
+            "接收": "input",
+            
+            "范围": "range",
+            "区间": "range",
+            
+            "长度": "len",
+            "计数": "len",
+            
+            "整数": "int",
+            "浮点数": "float",
+            "字符串": "str",
+            "布尔值": "bool",
+            
+            "列表": "list",
+            "数组": "list",
+            "字典": "dict",
+            "集合": "set",
+            "元组": "tuple",
+            
+            "真": "True",
+            "假": "False",
+            "空": "None",
+            
+            "导入": "import",
+            "从": "from",
+            "作为": "as",
+            
+            // 数学运算
+            "绝对值": "abs",
+            "最大值": "max", 
+            "最小值": "min",
+            "总和": "sum",
+            "四舍五入": "round",
+            "幂": "pow",
+            "取整": "int",
+            
+            // 其他常用词
+            "添加": "append",
+            "追加": "append",
+            "插入": "insert",
+            "弹出": "pop",
+            "删除": "remove",
+            "排序": "sort",
+            "反转": "reverse",
+            "连接": "join",
+            "分割": "split",
+            "替换": "replace",
+            "开始于": "startswith",
+            "结束于": "endswith",
+            "查找": "find",
+            "统计": "count",
+            "大写": "upper",
+            "小写": "lower",
+            "标题": "title",
+            "去空格": "strip",
+            
+            // 文件操作
+            "打开": "open",
+            "读": "read",
+            "写入": "write",
+            "关闭": "close",
+            "读行": "readline",
+            "读取所有行": "readlines",
+            
+            // 迭代和生成器
+            "生成": "yield",
+            "生成器": "generator",
+            "枚举": "enumerate",
+            "过滤": "filter",
+            "映射": "map",
+            "转换": "map",
+            "任意": "any",
+            "全部": "all",
+            
+            // 时间和日期
+            "当前时间": "datetime.now",
+            "日期": "date",
+            "时间": "time",
+            "年": "year",
+            "月": "month",
+            "日": "day",
+            "小时": "hour",
+            "分钟": "minute",
+            "秒": "second",
+            "格式化时间": "strftime",
+            "解析时间": "strptime",
+            "时间差": "timedelta"
+        };
+
+        // 中文标点符号到英文标点符号的映射
+        const punctuationMapping = {
+            "，": ",",
+            "。": ".",
+            "；": ";",
+            "：": ":",
+            "！": "!",
+            "？": "?",
+            "\u201C": "\"",
+            "\u201D": "\"",
+            "\u2018": "'",
+            "\u2019": "'",
+            "（": "(",
+            "）": ")",
+            "【": "[",
+            "】": "]",
+            "《": "<",
+            "》": ">",
+            "——": "-",
+            "……": "...",
+            "、": ",",
+            "·": "."
+        };
+
+        // 将中文Python代码转换为标准Python代码
+        function translateToPython(chineseCode) {
+            try {
+                let result = chineseCode;
+                
+                // 提取所有字符串，避免替换它们内部的内容
+                const placeholders = {};
+                let stringCount = 0;
+                
+                // 提取三引号字符串
+                const tripleQuotePattern = /("""[\s\S]*?"""|'''[\s\S]*?''')/g;
+                result = result.replace(tripleQuotePattern, function(match) {
+                    const placeholder = `__STRING_${stringCount++}__`;
+                    placeholders[placeholder] = match;
+                    return placeholder;
+                });
+                
+                // 提取单行字符串
+                const stringPattern = /(".*?"|'.*?')/g;
+                result = result.replace(stringPattern, function(match) {
+                    const placeholder = `__STRING_${stringCount++}__`;
+                    placeholders[placeholder] = match;
+                    return placeholder;
+                });
+                
+                // 提取注释
+                const commentPattern = /(#.*?)$/gm;
+                let commentCount = 0;
+                result = result.replace(commentPattern, function(match) {
+                    const placeholder = `__COMMENT_${commentCount++}__`;
+                    placeholders[placeholder] = match;
+                    return placeholder;
+                });
+                
+                // 处理特殊情况：print语句需要正确处理括号
+                const printKeywords = ['打印', '输出', '显示', '写出'];
+                for (const printWord of printKeywords) {
+                    // 查找没有括号的打印语句（例如：打印 结果）
+                    const pattern = new RegExp(`(${printWord}\\s+[^\\(\\n]+)`, 'g');
+                    result = result.replace(pattern, function(match, p1) {
+                        // 提取打印命令后面的内容
+                        const content = p1.split(/\s+(.+)/)[1].trim();
+                        // 替换为有括号的形式
+                        return `${printWord}(${content})`;
+                    });
+                }
+                
+                // 对键进行排序，确保长词组先替换
+                const sortedKeys = Object.keys(PY_MAPPING).sort((a, b) => b.length - a.length);
+                
+                // 处理关键词替换
+                for (const key of sortedKeys) {
+                    // 确保只替换"词"而不是词的一部分
+                    const pattern = new RegExp(`(?<!\\w)${key}(?!\\w)`, 'g');
+                    result = result.replace(pattern, PY_MAPPING[key]);
+                }
+                
+                // 转换标点符号
+                for (const [zhPunct, enPunct] of Object.entries(punctuationMapping)) {
+                    result = result.replace(new RegExp(zhPunct, 'g'), enPunct);
+                }
+                
+                // 恢复所有字符串和注释
+                for (const [placeholder, original] of Object.entries(placeholders)) {
+                    result = result.replace(placeholder, original);
+                }
+                
+                return result;
+            } catch (error) {
+                console.error("转换错误:", error);
+                return `# 转换错误: ${error.message}\n${chineseCode}`;
+            }
+        }
+
+        // 创建代码编辑器
+        const codeEditor = CodeMirror(document.getElementById('code-editor'), {
+            mode: 'python',
+            theme: 'default',
+            lineNumbers: true,
+            indentUnit: 4,
+            tabSize: 4,
+            indentWithTabs: false,
+            lineWrapping: true,
+            autoCloseBrackets: true,
+            matchBrackets: true,
+            viewportMargin: Infinity, // 允许无限滚动
+            scrollbarStyle: "native", // 使用原生滚动条
+            extraKeys: {
+                "F5": function(cm) {
+                    document.getElementById('run-btn').click();
+                },
+                "Tab": function(cm) {
+                    var spaces = Array(cm.getOption("indentUnit") + 1).join(" ");
+                    cm.replaceSelection(spaces);
+                }
+            }
+        });
+
+        // 设置默认代码示例
+        codeEditor.setValue(`# 这是一个中文Python示例
+打印("你好，世界！")
+
+定义 计算平方(数字):
+    返回 数字 * 数字
+
+# 使用for循环
+对于 i 在 范围(1, 6):
+    打印(f"{i} 的平方是 {计算平方(i)}")
+
+# 条件语句
+如果 计算平方(3) > 5:
+    打印("3的平方大于5")
+否则:
+    打印("3的平方不大于5")
+`);
+
+        // 更新转换后的代码
+        function updateConvertedCode() {
+            const chineseCode = codeEditor.getValue();
+            const pythonCode = translateToPython(chineseCode);
+            document.getElementById('converted-code').textContent = pythonCode;
+        }
+
+        // 绑定编辑器变化事件
+        codeEditor.on('change', updateConvertedCode);
+
+        // 初始更新转换后的代码
+        updateConvertedCode();
+
+        // 按钮事件绑定
+        document.getElementById('new-btn').addEventListener('click', function() {
+            if (confirm('确定要创建新文件吗？当前内容将被清空。')) {
+                codeEditor.setValue('');
+                document.getElementById('execution-output').textContent = '';
+                document.getElementById('status').textContent = '新建文件';
+            }
+        });
+
+        document.getElementById('clear-btn').addEventListener('click', function() {
+            document.getElementById('execution-output').textContent = '';
+            document.getElementById('status').textContent = '已清空输出';
+        });
+        
+        // 停止按钮事件
+        document.getElementById('stop-btn').addEventListener('click', function() {
+            if (pyodideLoaded) {
+                try {
+                    // 尝试中断执行
+                    pyodide.runPython(`
+                        import sys
+                        sys.stdout = sys.__stdout__
+                        sys.stderr = sys.__stderr__
+                    `);
+                    document.getElementById('execution-output').textContent += '\n执行已被用户停止！';
+                    document.getElementById('status').textContent = '执行已停止';
+                } catch (error) {
+                    console.error('停止执行失败:', error);
+                }
+            }
+            // 禁用停止按钮
+            document.getElementById('stop-btn').disabled = true;
+        });
+
+        document.getElementById('help-btn').addEventListener('click', function() {
+            alert(`中文Python在线编辑器使用帮助：
+
+1. 在左侧编辑器中输入中文Python代码
+2. 右上方窗口会实时显示转换后的Python代码
+3. 点击"运行"按钮或按F5执行代码
+4. 执行结果将显示在右下方窗口
+
+支持的中文关键词包括：
+- 如果/若/假如 -> if
+- 否则如果 -> elif
+- 否则 -> else
+- 对于/遍历 -> for
+- 在 -> in
+- 当/只要 -> while
+- 定义 -> def
+- 类 -> class
+- 打印 -> print
+等等...
+
+更多信息请参考完整的中文-Python映射表。`);
+        });
+
+        // 用于存储 Pyodide 实例
+        let pyodide = null;
+        let pyodideLoaded = false;
+        
+        // 加载 Pyodide
+        async function initPyodide() {
+            if (!pyodideLoaded) {
+                const statusElement = document.getElementById('status');
+                statusElement.innerHTML = '正在加载 Python 解释器... <span class="loading">⟳</span>';
+                
+                try {
+                    // 加载 Pyodide (使用window.loadPyodide是正确的引用)
+                    pyodide = await window.loadPyodide();
+                    pyodideLoaded = true;
+                    
+                    // 预加载一些常用的包，但要注意numpy可能会导致加载时间过长
+                    try {
+                        await pyodide.loadPackagesFromImports(`
+                            import math
+                        `);
+                    } catch (pkgError) {
+                        console.warn('包加载警告:', pkgError);
+                    }
+                    
+                    statusElement.textContent = 'Python 解释器已加载';
+                    return pyodide;
+                } catch (error) {
+                    statusElement.textContent = '加载 Python 解释器失败';
+                    console.error('加载 Pyodide 失败:', error);
+                    pyodideLoaded = false;
+                    return null;
+                }
+            }
+            return pyodide;
+        }
+        
+        // 页面加载完成后初始化
+        window.addEventListener('load', function() {
+            // 延迟初始化，确保页面完全加载
+            setTimeout(async function() {
+                try {
+                    await initPyodide();
+                } catch (error) {
+                    console.error('初始化错误:', error);
+                    document.getElementById('status').textContent = 'Python解释器加载失败';
+                }
+            }, 1000);
+        });
+        
+        // 运行按钮绑定事件
+        document.getElementById('run-btn').addEventListener('click', async function() {
+            const outputElement = document.getElementById('execution-output');
+            outputElement.textContent = '';
+            
+            // 获取转换后的Python代码
+            const chineseCode = codeEditor.getValue();
+            const pythonCode = translateToPython(chineseCode);
+            
+            // 启用停止按钮
+            document.getElementById('stop-btn').disabled = false;
+            
+            // 更新状态
+            document.getElementById('status').textContent = '正在执行...';
+            
+            // 如果 Pyodide 未加载，先加载它
+            if (!pyodideLoaded) {
+                outputElement.textContent = '正在加载 Python 解释器...\n';
+                await initPyodide();
+                if (!pyodideLoaded) {
+                    outputElement.textContent += '加载 Python 解释器失败，请刷新页面重试。';
+                    return;
+                }
+                outputElement.textContent += 'Python 解释器加载完成。\n\n';
+            }
+            
+            // 执行代码
+            try {
+                // 重定向输出
+                pyodide.runPython(`
+                    import sys
+                    from io import StringIO
+                    
+                    class CustomOutput:
+                        def __init__(self):
+                            self.buffer = StringIO()
+                            
+                        def write(self, text):
+                            self.buffer.write(text)
+                            return len(text)
+                            
+                        def flush(self):
+                            pass
+                            
+                    sys.stdout = CustomOutput()
+                    sys.stderr = CustomOutput()
+                `);
+                
+                // 运行用户代码
+                pyodide.runPython(pythonCode);
+                
+                // 获取输出结果
+                const stdout = pyodide.runPython("sys.stdout.buffer.getvalue()");
+                const stderr = pyodide.runPython("sys.stderr.buffer.getvalue()");
+                
+                // 显示输出
+                if (stdout) {
+                    outputElement.textContent += stdout;
+                }
+                
+                if (stderr) {
+                    const errorDiv = document.createElement('div');
+                    errorDiv.className = 'error';
+                    errorDiv.textContent = stderr;
+                    outputElement.appendChild(errorDiv);
+                }
+                
+                // 恢复标准输出
+                pyodide.runPython(`
+                    sys.stdout = sys.__stdout__
+                    sys.stderr = sys.__stderr__
+                `);
+                
+                document.getElementById('status').textContent = '执行完成';
+            } catch (error) {
+                const errorDiv = document.createElement('div');
+                errorDiv.className = 'error';
+                errorDiv.textContent = `执行错误: ${error.message}`;
+                outputElement.appendChild(errorDiv);
+                document.getElementById('status').textContent = '执行出错';
+            }
+        });
+    </script>
+</body>
+</html> 
